@@ -23,42 +23,42 @@ class GraphApp:
     def create_layout(self):
         """Crea la interfaz con panel lateral izquierdo y área de visualización a la derecha"""
 
-        # 🔹 Crear un marco lateral para los controles
+        # Crear un marco lateral para los controles
         control_frame = tk.Frame(self.root, padx=10, pady=10)
         control_frame.grid(row=0, column=0, sticky="ns")
 
-        # 📌 Botón para cargar archivo
+        # Botón para cargar archivo
         tk.Button(control_frame, text="Cargar Archivo", command=self.load_file).pack(fill="x", pady=5)
 
-        # 📌 Entrada para Nodo Inicial
+        # Entrada para Nodo Inicial
         tk.Label(control_frame, text="Nodo Inicio:").pack(anchor="w")
         tk.Entry(control_frame, textvariable=self.start_node).pack(fill="x", pady=2)
 
-        # 📌 Entrada para Nodo Final
+        # Entrada para Nodo Final
         tk.Label(control_frame, text="Nodo Fin:").pack(anchor="w")
         tk.Entry(control_frame, textvariable=self.end_node).pack(fill="x", pady=2)
 
-        # 📌 Dropdown de Algoritmos
+        # Dropdown de Algoritmos
         tk.Label(control_frame, text="Algoritmo:").pack(anchor="w")
         opciones = ["BFS", "DFS"]
         dropdown = tk.OptionMenu(control_frame, self.algorithm_selected, *opciones)
         dropdown.pack(fill="x", pady=5)
 
-        # 📌 Botón para ejecutar
+        # Botón para ejecutar
         tk.Button(control_frame, text="Ejecutar", command=self.run_algorithm).pack(fill="x", pady=10)
 
-        # 🔹 Crear un marco para la visualización del grafo (lado derecho)
+        # Crear un marco para la visualización del grafo (lado derecho)
         graph_frame = tk.Frame(self.root, bg="white")
         graph_frame.grid(row=0, column=1, sticky="nsew")
 
-        # 📌 Configurar la expansión de las columnas y filas
+        # Configurar la expansión de las columnas y filas
         self.root.columnconfigure(1, weight=1)  # Permite que el grafo se expanda
         self.root.rowconfigure(0, weight=1)
 
         
         self.figure, self.ax = plt.subplots(figsize=(5, 4))
             
-            # 🔹 Configurar el fondo blanco y ocultar los ejes
+            # Configurar el fondo blanco y ocultar los ejes
         self.ax.set_facecolor("white")  # Fondo blanco para la figura
         self.ax.set_xticks([])  # Ocultar eje X
         self.ax.set_yticks([])  # Ocultar eje Y
