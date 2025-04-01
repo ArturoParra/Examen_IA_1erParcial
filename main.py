@@ -7,7 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class GraphApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Graph Algorithms App")
+        self.root.title("Visualizador de Grafos")
         self.root.geometry("900x600")  # Tamaño inicial de la ventana
         
         self.graph = nx.Graph()
@@ -40,7 +40,8 @@ class GraphApp:
 
         # Dropdown de Algoritmos
         tk.Label(control_frame, text="Algoritmo:").pack(anchor="w")
-        opciones = ["BFS", "DFS"]
+        opciones = ["BFS", "DFS", "Djikstra", "Bellman-Ford", "Greedy", "Hill Climbing"]
+        self.algorithm_selected.set(opciones[0])  # Establecer el algoritmo por defecto
         dropdown = tk.OptionMenu(control_frame, self.algorithm_selected, *opciones)
         dropdown.pack(fill="x", pady=5)
 
@@ -76,8 +77,13 @@ class GraphApp:
                 with open(file_path, 'r') as file:
                     for line in file:
                         if line.strip():
-                            node1, node2 = line.strip().split()
-                            self.graph.add_edge(node1, node2)
+                            parts = line.strip().split()
+                            if len(parts) == 3:
+                                node1, node2, weight = parts
+                                self.graph.add_edge(node1, node2, weight=float(weight))
+                            else:
+                                messagebox.showerror("Error", "Formato de archivo incorrecto. Debe ser 'nodo1 nodo2 peso' o 'nodo1 nodo2'.")
+                                return
                 self.pos = nx.spring_layout(self.graph)  # Calcular posiciones solo una vez
                 self.draw_graph()
             except Exception as e:
@@ -92,6 +98,10 @@ class GraphApp:
 
         nx.draw(self.graph, self.pos, with_labels=True, node_color='skyblue',
                 node_size=500, font_size=10, font_weight='bold', ax=self.ax)
+        
+        edge_labels = nx.get_edge_attributes(self.graph, 'weight')
+        nx.draw_networkx_edge_labels(self.graph, self.pos, edge_labels=edge_labels, ax=self.ax)
+
         self.edges_drawn = []
         for edge in self.graph.edges():
             line, = self.ax.plot([], [], color="black", linewidth=1)
@@ -138,18 +148,80 @@ class GraphApp:
 
         try:
             if algorithm == "BFS":
-                path = nx.shortest_path(self.graph, source=start_node, target=end_node, method='bfs')
-            elif algorithm == "DFS":
+                path = nx.shortest_path(self.graph, source=start_node, target=end_node)
+            if algorithm == "Djikstra":
+                path = nx.dijkstra_path(self.graph, source=start_node, target=end_node)
+            if algorithm == "Bellman-Ford":
+                path = nx.bellman_ford_path(self.graph, source=start_node, target=end_node)
+            if algorithm == "DFS":
                 path = list(nx.dfs_preorder_nodes(self.graph, source=start_node))
                 if end_node in path:
                     path = path[:path.index(end_node) + 1]
                 else:
                     raise nx.NetworkXNoPath
-
+            if algorithm == "Greedy":
+                path = self.greedy_algorithm(start_node, end_node)
+            if algorithm == "Hill Climbing":
+                path = self.greedy_algorithm(start_node, end_node)
+             
             self.highlight_path(path)
 
         except nx.NetworkXNoPath:
             messagebox.showwarning("Sin Ruta", f"No hay camino entre {start_node} y {end_node}.")
+
+    def greedy_algorithm(self, start_node, end_node):
+        visited = set()  # Conjunto de nodos visitados
+        path = [start_node]  # Ruta inicial
+        current_node = start_node
+
+        while current_node != end_node:
+            visited.add(current_node)
+            neighbors = self.graph[current_node]  # Vecinos del nodo actual
+
+            # Encontrar el vecino con el menor peso que no haya sido visitado
+            next_node = None
+            min_weight = float('inf')
+            for neighbor, attributes in neighbors.items():
+                if neighbor not in visited and attributes.get('weight', 1) < min_weight:
+                    next_node = neighbor
+                    min_weight = attributes.get('weight', 1)
+
+            if next_node is None:
+                raise nx.NetworkXNoPath  # No hay camino al nodo final
+
+            path.append(next_node)
+            current_node = next_node
+
+        return path
+
+    def hill_climbing_algorithm(self, start_node, end_node):
+        visited = set()  # Conjunto de nodos visitados
+        path = [start_node]  # Ruta inicial
+        current_node = start_node
+
+        while current_node != end_node:
+            visited.add(current_node)
+            neighbors = self.graph[current_node]  # Vecinos del nodo actual
+
+            # Seleccionar el vecino más prometedor según la heurística
+            next_node = None
+            best_heuristic = float('inf')
+            for neighbor, attributes in neighbors.items():
+                if neighbor not in visited:
+                    # Heurística: peso de la arista + distancia al nodo objetivo
+                    weight = attributes.get('weight', 1)
+                    heuristic = weight  # Puedes agregar más criterios aquí
+                    if heuristic < best_heuristic:
+                        next_node = neighbor
+                        best_heuristic = heuristic
+
+            if next_node is None:
+                raise nx.NetworkXNoPath  # No hay camino al nodo final
+
+            path.append(next_node)
+            current_node = next_node
+
+        return path
 
 if __name__ == "__main__":
     root = tk.Tk()
