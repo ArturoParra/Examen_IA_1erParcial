@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import networkx as nx
@@ -15,10 +16,18 @@ class GraphApp:
         self.start_node = tk.StringVar()
         self.end_node = tk.StringVar()
         self.edges_drawn = []
+        self.heuristics = {}
 
         self.algorithm_selected = tk.StringVar(value="BFS")  # Algoritmo por defecto
 
         self.create_layout()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        """Maneja el evento de cierre de la ventana"""
+        if messagebox.askokcancel("Salir", "¿Estás seguro de que deseas cerrar el programa?"):
+            self.root.destroy()  # Cierra la ventana
+            sys.exit(0)  # Termina el programa
     
     def create_layout(self):
         """Crea la interfaz con panel lateral izquierdo y área de visualización a la derecha"""
@@ -47,6 +56,12 @@ class GraphApp:
 
         # Botón para ejecutar
         tk.Button(control_frame, text="Ejecutar", command=self.run_algorithm).pack(fill="x", pady=10)
+
+        # Botón para calcular heurísticas
+        tk.Button(control_frame, text="Calcular Heurísticas", command=lambda: self.calculate_heuristics(self.end_node.get())).pack(fill="x", pady=5)
+        tk.Label(control_frame, text="Heurísticas:").pack(anchor="w")
+        self.heuristics_text = tk.Text(control_frame, height=10, width=30)
+        self.heuristics_text.pack(fill="x", pady=5)
 
         # Crear un marco para la visualización del grafo (lado derecho)
         graph_frame = tk.Frame(self.root, bg="white")
@@ -162,7 +177,7 @@ class GraphApp:
             if algorithm == "Greedy":
                 path = self.greedy_algorithm(start_node, end_node)
             if algorithm == "Hill Climbing":
-                path = self.greedy_algorithm(start_node, end_node)
+                path = self.hill_climbing_algorithm(start_node, end_node)
              
             self.highlight_path(path)
 
@@ -187,7 +202,7 @@ class GraphApp:
                     min_weight = attributes.get('weight', 1)
 
             if next_node is None:
-                raise nx.NetworkXNoPath  # No hay camino al nodo final
+                raise nx.NetworkXNoPath
 
             path.append(next_node)
             current_node = next_node
@@ -195,6 +210,9 @@ class GraphApp:
         return path
 
     def hill_climbing_algorithm(self, start_node, end_node):
+        if self.heuristics is None:
+            messagebox.showerror("Error", "Primero calcula las heurísticas.")
+            return
         visited = set()  # Conjunto de nodos visitados
         path = [start_node]  # Ruta inicial
         current_node = start_node
@@ -206,12 +224,12 @@ class GraphApp:
             # Seleccionar el vecino más prometedor según la heurística
             next_node = None
             best_heuristic = float('inf')
-            for neighbor, attributes in neighbors.items():
+            for neighbor in neighbors:
                 if neighbor not in visited:
-                    # Heurística: peso de la arista + distancia al nodo objetivo
-                    weight = attributes.get('weight', 1)
-                    heuristic = weight  # Puedes agregar más criterios aquí
+                    # Obtener la heurística del nodo vecino
+                    heuristic = self.heuristics.get(neighbor, float('inf'))
                     if heuristic < best_heuristic:
+
                         next_node = neighbor
                         best_heuristic = heuristic
 
@@ -222,6 +240,30 @@ class GraphApp:
             current_node = next_node
 
         return path
+    
+    def calculate_heuristics(self, target_node):
+        if target_node not in self.graph:
+            messagebox.showerror("Error", f"El nodo objetivo '{target_node}' no existe en el grafo.")
+            return
+
+        # Calcular la heurística como la distancia más corta al nodo objetivo
+        self.heuristics = {}  # Reiniciar el diccionario de heurísticas
+        for node in self.graph.nodes:
+            try:
+                # Usar la distancia más corta como heurística
+                distance = nx.shortest_path_length(self.graph, source=node, target=target_node, weight='weight')
+                self.heuristics[node] = distance
+            except nx.NetworkXNoPath:
+                # Si no hay camino al nodo objetivo, asignar una heurística infinita
+                self.heuristics[node] = float('inf')
+
+        # Mostrar las heurísticas en el área de texto
+        self.heuristics_text.delete(1.0, tk.END)  # Limpiar el contenido previo
+        for node, heuristic in self.heuristics.items():
+            self.heuristics_text.insert(tk.END, f"{node}: {heuristic}\n")  # Insertar nodo y heurística
+
+        messagebox.showinfo("Heurística Calculada", "Se han calculado las heurísticas para todos los nodos.")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
