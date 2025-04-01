@@ -8,48 +8,67 @@ class GraphApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Graph Algorithms App")
-
+        self.root.geometry("900x600")  # Tamaño inicial de la ventana
+        
         self.graph = nx.Graph()
-        self.pos = {}  # Posiciones de los nodos
+        self.pos = {}  
         self.start_node = tk.StringVar()
         self.end_node = tk.StringVar()
         self.edges_drawn = []
 
-        self.algorithm_selected = tk.StringVar(value="BFS")  # Valor inicial
+        self.algorithm_selected = tk.StringVar(value="BFS")  # Algoritmo por defecto
 
-        self.create_widgets()
+        self.create_layout()
+    
+    def create_layout(self):
+        """Crea la interfaz con panel lateral izquierdo y área de visualización a la derecha"""
 
-    def create_widgets(self):
-        control_frame = tk.Frame(self.root)
-        control_frame.pack(pady=10)
+        # 🔹 Crear un marco lateral para los controles
+        control_frame = tk.Frame(self.root, padx=10, pady=10)
+        control_frame.grid(row=0, column=0, sticky="ns")
 
-        # Botón para cargar archivo
-        load_button = tk.Button(control_frame, text="Cargar Archivo", command=self.load_file)
-        load_button.grid(row=0, column=0, padx=10)
+        # 📌 Botón para cargar archivo
+        tk.Button(control_frame, text="Cargar Archivo", command=self.load_file).pack(fill="x", pady=5)
 
-        # Campos para ingresar nodo inicial y final
-        tk.Label(control_frame, text="Inicio:").grid(row=0, column=1)
-        tk.Entry(control_frame, textvariable=self.start_node, width=5).grid(row=0, column=2, padx=5)
+        # 📌 Entrada para Nodo Inicial
+        tk.Label(control_frame, text="Nodo Inicio:").pack(anchor="w")
+        tk.Entry(control_frame, textvariable=self.start_node).pack(fill="x", pady=2)
 
-        tk.Label(control_frame, text="Fin:").grid(row=0, column=3)
-        tk.Entry(control_frame, textvariable=self.end_node, width=5).grid(row=0, column=4, padx=5)
+        # 📌 Entrada para Nodo Final
+        tk.Label(control_frame, text="Nodo Fin:").pack(anchor="w")
+        tk.Entry(control_frame, textvariable=self.end_node).pack(fill="x", pady=2)
 
-        # Dropdown para seleccionar algoritmo
-        tk.Label(control_frame, text="Algoritmo:").grid(row=0, column=5)
+        # 📌 Dropdown de Algoritmos
+        tk.Label(control_frame, text="Algoritmo:").pack(anchor="w")
         opciones = ["BFS", "DFS"]
         dropdown = tk.OptionMenu(control_frame, self.algorithm_selected, *opciones)
-        dropdown.grid(row=0, column=6, padx=10)
+        dropdown.pack(fill="x", pady=5)
 
-        # Botón para ejecutar algoritmo seleccionado
-        run_button = tk.Button(control_frame, text="Ejecutar", command=self.run_algorithm)
-        run_button.grid(row=0, column=7, padx=10)
+        # 📌 Botón para ejecutar
+        tk.Button(control_frame, text="Ejecutar", command=self.run_algorithm).pack(fill="x", pady=10)
 
-        # Frame para el gráfico del grafo
+        # 🔹 Crear un marco para la visualización del grafo (lado derecho)
+        graph_frame = tk.Frame(self.root, bg="white")
+        graph_frame.grid(row=0, column=1, sticky="nsew")
+
+        # 📌 Configurar la expansión de las columnas y filas
+        self.root.columnconfigure(1, weight=1)  # Permite que el grafo se expanda
+        self.root.rowconfigure(0, weight=1)
+
+        
         self.figure, self.ax = plt.subplots(figsize=(5, 4))
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.root)
-        self.canvas.get_tk_widget().pack()
+            
+            # 🔹 Configurar el fondo blanco y ocultar los ejes
+        self.ax.set_facecolor("white")  # Fondo blanco para la figura
+        self.ax.set_xticks([])  # Ocultar eje X
+        self.ax.set_yticks([])  # Ocultar eje Y
+        self.ax.set_frame_on(False)  # Eliminar el borde del gráfico
+
+        self.canvas = FigureCanvasTkAgg(self.figure, master=graph_frame)
+        self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
     def load_file(self):
+        """Carga un archivo de texto con la estructura del grafo"""
         file_path = filedialog.askopenfilename(filetypes=[("Archivos de Texto", "*.txt")])
         if file_path:
             self.graph.clear()
@@ -65,8 +84,12 @@ class GraphApp:
                 messagebox.showerror("Error", f"No se pudo cargar el archivo: {e}")
 
     def draw_graph(self):
-        """Dibuja el grafo solo una vez sin ruta resaltada"""
+        """Dibuja el grafo sin rutas resaltadas"""
         self.ax.clear()
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        self.ax.set_frame_on(False)
+
         nx.draw(self.graph, self.pos, with_labels=True, node_color='skyblue',
                 node_size=500, font_size=10, font_weight='bold', ax=self.ax)
         self.edges_drawn = []
@@ -96,6 +119,7 @@ class GraphApp:
         self.canvas.draw()
 
     def run_algorithm(self):
+        """Ejecuta el algoritmo seleccionado y colorea la ruta"""
         if not self.graph.nodes:
             messagebox.showwarning("Advertencia", "Carga un archivo primero.")
             return
