@@ -49,7 +49,7 @@ class GraphApp:
 
         # Dropdown de Algoritmos
         tk.Label(control_frame, text="Algoritmo:").pack(anchor="w")
-        opciones = ["BFS", "DFS", "Djikstra", "Bellman-Ford", "Greedy", "Hill Climbing"]
+        opciones = ["BFS", "DFS", "Djikstra", "Bellman-Ford", "Greedy", "Hill Climbing", "Recocido Simulado"]
         self.algorithm_selected.set(opciones[0])  # Establecer el algoritmo por defecto
         dropdown = tk.OptionMenu(control_frame, self.algorithm_selected, *opciones)
         dropdown.pack(fill="x", pady=5)
@@ -178,6 +178,8 @@ class GraphApp:
                 path = self.greedy_algorithm(start_node, end_node)
             if algorithm == "Hill Climbing":
                 path = self.hill_climbing_algorithm(start_node, end_node)
+            if algorithm == "Recocido Simulado":
+                path = self.simulated_annealing(start_node, end_node)
              
             self.highlight_path(path)
 
@@ -241,6 +243,47 @@ class GraphApp:
 
         return path
     
+    def simulated_annealing(self, start_node, end_node):
+        if self.heuristics is None:
+            messagebox.showerror("Error", "Primero calcula las heurísticas.")
+            return
+
+        current_node = start_node
+        current_heuristic = self.heuristics.get(current_node, float('inf'))
+        path = [current_node]  # Ruta inicial
+        temperature = 100  # Temperatura inicial
+        cooling_rate = 0.95  # Tasa de enfriamiento
+
+        while temperature > 1:
+            neighbors = list(self.graph[current_node])  # Obtener los vecinos del nodo actual
+
+            if not neighbors:
+                messagebox.showwarning("Sin Ruta", "No hay vecinos disponibles para continuar.")
+                return path
+
+            # Seleccionar un vecino aleatorio
+            next_node = random.choice(neighbors)
+            next_heuristic = self.heuristics.get(next_node, float('inf'))
+
+            # Calcular el cambio en la heurística
+            delta_heuristic = next_heuristic - current_heuristic
+
+            # Decidir si moverse al vecino
+            if delta_heuristic < 0 or random.uniform(0, 1) < math.exp(-delta_heuristic / temperature):
+                current_node = next_node
+                current_heuristic = next_heuristic
+                path.append(current_node)
+
+            # Si se alcanza el nodo objetivo, terminar
+            if current_node == end_node:
+                return path
+
+            # Reducir la temperatura
+            temperature *= cooling_rate
+
+        messagebox.showwarning("Sin Ruta", "No se encontró un camino al nodo objetivo dentro del límite de temperatura.")
+        return path
+    
     def calculate_heuristics(self, target_node):
         if target_node not in self.graph:
             messagebox.showerror("Error", f"El nodo objetivo '{target_node}' no existe en el grafo.")
@@ -263,6 +306,10 @@ class GraphApp:
             self.heuristics_text.insert(tk.END, f"{node}: {heuristic}\n")  # Insertar nodo y heurística
 
         messagebox.showinfo("Heurística Calculada", "Se han calculado las heurísticas para todos los nodos.")
+
+import math
+import random
+
 
 
 if __name__ == "__main__":
